@@ -1,5 +1,6 @@
-#!/user/bin/env sh
+#!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# npm test
+export PATH="$HOME/.nvm/versions/node/v22.22.2/bin:$PATH"
+
 npm run lint && npm run format

@@ -8,6 +8,7 @@ import {
   json,
   pgTable,
   primaryKey,
+  serial,
   text,
   timestamp,
   uuid,
@@ -23,6 +24,7 @@ export const profiles = pgTable("profiles", {
   name: text("name"),
   is_admin: boolean("is_admin"),
   email: text("email").unique(),
+  phone: varchar("phone", { length: 30 }),
   createdAt: timestamp("created_at", {
     withTimezone: true,
     mode: "string",
@@ -177,6 +179,9 @@ export const products = pgTable(
       .notNull(),
 
     stock: integer("stock").default(8),
+    brandId: text("brand_id"),
+    metaTitle: varchar("meta_title", { length: 255 }),
+    metaDescription: text("meta_description"),
     collectionId: text("collection_id").references(() => collections.id, {
       onDelete: "set null",
     }),
@@ -418,6 +423,219 @@ export const medias = pgTable("medias", {
 
 export type SelectMedia = InferSelectModel<typeof medias>;
 export type InsertMedia = InferInsertModel<typeof medias>;
+
+// ─── Brands ──────────────────────────────────────────────────────────────────
+
+export const brands = pgTable("brands", {
+  id: text("id")
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  name: varchar("name", { length: 191 }).notNull(),
+  slug: varchar("slug", { length: 191 }).notNull().unique(),
+  logoUrl: text("logo_url"),
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type SelectBrand = InferSelectModel<typeof brands>;
+export type InsertBrand = InferInsertModel<typeof brands>;
+
+// ─── Product Variants (sabor, tamaño, formato) ────────────────────────────────
+
+export const productVariants = pgTable("product_variants", {
+  id: text("id")
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  productId: text("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 191 }).notNull(),
+  sku: varchar("sku", { length: 100 }),
+  price: decimal("price", { precision: 8, scale: 2 }).notNull().default("0.00"),
+  stock: integer("stock").default(0).notNull(),
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type SelectProductVariant = InferSelectModel<typeof productVariants>;
+export type InsertProductVariant = InferInsertModel<typeof productVariants>;
+
+// ─── Reviews (con rating, no solo comentarios) ────────────────────────────────
+
+export const reviews = pgTable("reviews", {
+  id: text("id")
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  productId: text("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  profileId: uuid("profile_id").references(() => profiles.id, { onDelete: "set null" }),
+  rating: integer("rating").notNull(),
+  title: varchar("title", { length: 255 }),
+  body: text("body"),
+  verified: boolean("verified").default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type SelectReview = InferSelectModel<typeof reviews>;
+export type InsertReview = InferInsertModel<typeof reviews>;
+
+// ─── Blog ────────────────────────────────────────────────────────────────────
+
+export const blogPosts = pgTable("blog_posts", {
+  id: text("id")
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  title: varchar("title", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  excerpt: text("excerpt"),
+  content: text("content").notNull(),
+  coverImageUrl: text("cover_image_url"),
+  published: boolean("published").default(false),
+  metaTitle: varchar("meta_title", { length: 255 }),
+  metaDescription: text("meta_description"),
+  publishedAt: timestamp("published_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type SelectBlogPost = InferSelectModel<typeof blogPosts>;
+export type InsertBlogPost = InferInsertModel<typeof blogPosts>;
+
+// ─── FAQ ─────────────────────────────────────────────────────────────────────
+
+export const faqItems = pgTable("faq_items", {
+  id: serial("id").primaryKey(),
+  question: text("question").notNull(),
+  answer: text("answer").notNull(),
+  category: varchar("category", { length: 100 }),
+  order: integer("order").default(0),
+  active: boolean("active").default(true),
+});
+
+export type SelectFaqItem = InferSelectModel<typeof faqItems>;
+export type InsertFaqItem = InferInsertModel<typeof faqItems>;
+
+// ─── Athlete Profiles ─────────────────────────────────────────────────────────
+
+export const athleteProfiles = pgTable("athlete_profiles", {
+  id: text("id")
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  name: varchar("name", { length: 191 }).notNull(),
+  slug: varchar("slug", { length: 191 }).notNull().unique(),
+  bio: text("bio"),
+  imageUrl: text("image_url"),
+  instagram: varchar("instagram", { length: 191 }),
+  youtube: varchar("youtube", { length: 191 }),
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type SelectAthleteProfile = InferSelectModel<typeof athleteProfiles>;
+export type InsertAthleteProfile = InferInsertModel<typeof athleteProfiles>;
+
+// ─── Newsletter ───────────────────────────────────────────────────────────────
+
+export const newsletterSubscribers = pgTable("newsletter_subscribers", {
+  id: text("id")
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  active: boolean("active").default(false),
+  confirmToken: text("confirm_token"),
+  confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type SelectNewsletterSubscriber = InferSelectModel<typeof newsletterSubscribers>;
+export type InsertNewsletterSubscriber = InferInsertModel<typeof newsletterSubscribers>;
+
+// ─── Loyalty Points ───────────────────────────────────────────────────────────
+
+export const loyaltyPoints = pgTable("loyalty_points", {
+  id: uuid("id").notNull().primaryKey(),
+  profileId: uuid("profile_id")
+    .notNull()
+    .unique()
+    .references(() => profiles.id, { onDelete: "cascade" }),
+  balance: integer("balance").default(0).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const loyaltyTransactions = pgTable("loyalty_transactions", {
+  id: text("id")
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  profileId: uuid("profile_id")
+    .notNull()
+    .references(() => profiles.id, { onDelete: "cascade" }),
+  orderId: text("order_id").references(() => orders.id, { onDelete: "set null" }),
+  points: integer("points").notNull(),
+  type: text("type", { enum: ["earn", "redeem"] }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ─── Coupons ──────────────────────────────────────────────────────────────────
+
+export const coupons = pgTable("coupons", {
+  id: text("id")
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  code: varchar("code", { length: 50 }).notNull().unique(),
+  discountType: text("discount_type", { enum: ["percentage", "fixed"] }).notNull(),
+  discountValue: decimal("discount_value", { precision: 8, scale: 2 }).notNull(),
+  minOrderAmount: decimal("min_order_amount", { precision: 8, scale: 2 }),
+  maxUses: integer("max_uses"),
+  usedCount: integer("used_count").default(0).notNull(),
+  active: boolean("active").default(true),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type SelectCoupon = InferSelectModel<typeof coupons>;
+export type InsertCoupon = InferInsertModel<typeof coupons>;
+
+// ─── Subscriptions (v2 — schema preparado) ───────────────────────────────────
+
+export const subscriptions = pgTable("subscriptions", {
+  id: text("id")
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  profileId: uuid("profile_id")
+    .notNull()
+    .references(() => profiles.id, { onDelete: "cascade" }),
+  productVariantId: text("product_variant_id").references(() => productVariants.id, {
+    onDelete: "set null",
+  }),
+  intervalDays: integer("interval_days").notNull().default(30),
+  discountPercent: integer("discount_percent").default(15),
+  active: boolean("active").default(true),
+  nextOrderAt: timestamp("next_order_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ─── Quiz Sessions (v2 — schema preparado) ────────────────────────────────────
+
+export const quizSessions = pgTable("quiz_sessions", {
+  id: text("id")
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  profileId: uuid("profile_id").references(() => profiles.id, { onDelete: "set null" }),
+  objective: text("objective"),
+  experience: text("experience"),
+  answers: json("answers").$type<Record<string, string>>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
 
 // https://stackoverflow.com/questions/24923469/modeling-product-variants
 
